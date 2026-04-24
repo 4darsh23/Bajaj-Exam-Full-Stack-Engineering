@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BFHL - Node Hierarchy Analyzer</title>
+  <style>
+    /* -------- reset & base -------- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f1117;
+      color: #e2e4e9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* -------- header -------- */
+    .header {
+      width: 100%;
+      background: linear-gradient(135deg, #1a1d2e 0%, #252940 100%);
+      border-bottom: 1px solid #2e3348;
+      padding: 28px 0;
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 0.5px;
+    }
+    .header p {
+      color: #8b8fa8;
+      font-size: 0.9rem;
+      margin-top: 6px;
+    }
+
+    /* -------- main container -------- */
+    .container {
+      width: 100%;
+      max-width: 900px;
+      padding: 32px 20px;
+    }
+
+    /* -------- input section -------- */
+    .input-card {
+      background: #1a1d2e;
+      border: 1px solid #2e3348;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .input-card label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #c4c7d4;
+      display: block;
+      margin-bottom: 10px;
+    }
+    .input-card textarea {
+      width: 100%;
+      min-height: 120px;
+      background: #12141e;
+      border: 1px solid #2e3348;
+      border-radius: 8px;
+      color: #e2e4e9;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.92rem;
+      padding: 14px;
+      resize: vertical;
+      transition: border-color 0.2s;
+    }
+    .input-card textarea:focus {
+      outline: none;
+      border-color: #60a5fa;
+    }
+    .input-card .hint {
+      font-size: 0.78rem;
+      color: #6b6f85;
+      margin-top: 8px;
+    }
+
+    /* -------- buttons -------- */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .btn {
+      padding: 10px 28px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.12s, opacity 0.2s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: #fff;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: #252940;
+      color: #c4c7d4;
+      border: 1px solid #2e3348;
+    }
+    .btn-secondary:hover { background: #2e3348; }
+
+    /* -------- error banner -------- */
+    .error-banner {
+      background: #2d1518;
+      border: 1px solid #5c2328;
+      color: #f87171;
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 0.88rem;
+    }
+
+    /* -------- results section -------- */
+    .results { display: none; }
+    .results.visible { display: block; }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: #c4c7d4;
+    }
+
+    /* summary cards row */
+    .summary-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: #1a1d2e;
+      border: 1px solid #2e3348;
+      border-radius: 10px;
+      padding: 18px;
+      text-align: center;
+    }
+    .stat-card .num {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #60a5fa, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .stat-card .label {
+      font-size: 0.8rem;
+      color: #6b6f85;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* hierarchy cards */
+    .hierarchy-card {
+      background: #1a1d2e;
+      border: 1px solid #2e3348;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 14px;
+    }
+    .hierarchy-card .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .badge {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .badge-tree { background: #163a2a; color: #34d399; }
+    .badge-cycle { background: #3b1a1a; color: #f87171; }
+
+    .tree-box {
+      background: #12141e;
+      border: 1px solid #23263a;
+      border-radius: 8px;
+      padding: 14px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      white-space: pre;
+      color: #a5a8c0;
+    }
+
+    /* tag lists for invalid / duplicate */
+    .tag-section {
+      background: #1a1d2e;
+      border: 1px solid #2e3348;
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+    .tag-section h3 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #c4c7d4;
+      margin-bottom: 10px;
+    }
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .tag {
+      background: #252940;
+      border: 1px solid #2e3348;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-family: monospace;
+      color: #a5a8c0;
+    }
+    .tag.invalid { border-color: #5c2328; color: #f87171; }
+    .tag.dup { border-color: #4a3f1e; color: #fbbf24; }
+    .empty-msg {
+      font-size: 0.82rem;
+      color: #4e5168;
+      font-style: italic;
+    }
+
+    /* raw json toggle */
+    .raw-toggle {
+      margin-top: 24px;
+    }
+    .raw-json {
+      display: none;
+      background: #12141e;
+      border: 1px solid #23263a;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 10px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #8b8fa8;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .raw-json.open { display: block; }
+
+    /* spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>&#x1F333; Node Hierarchy Analyzer</h1>
+    <p>Enter relationship edges and visualize the tree structures</p>
+  </div>
+
+  <div class="container">
+
+    <!-- input -->
+    <div class="input-card">
+      <label for="dataInput">Enter node relationships</label>
+      <textarea id="dataInput" placeholder='e.g.  "A->B", "A->C", "B->D", "C->E"'></textarea>
+      <p class="hint">Comma-separated strings. Each entry should be like <code>X-&gt;Y</code> where X and Y are single uppercase letters.</p>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="submitBtn" onclick="handleSubmit()">Analyze</button>
+        <button class="btn btn-secondary" onclick="handleClear()">Clear</button>
+        <button class="btn btn-secondary" onclick="loadExample()">Load Example</button>
+      </div>
+    </div>
+
+    <!-- error -->
+    <div class="error-banner" id="errorBox" style="display:none;"></div>
+
+    <!-- results -->
+    <div class="results" id="resultsSection">
+
+      <!-- summary -->
+      <h2 class="section-title">Summary</h2>
+      <div class="summary-row" id="summaryRow"></div>
+
+      <!-- hierarchies -->
+      <h2 class="section-title">Hierarchies</h2>
+      <div id="hierarchiesContainer"></div>
+
+      <!-- invalid entries -->
+      <div class="tag-section">
+        <h3>Invalid Entries</h3>
+        <div class="tags" id="invalidList"></div>
+      </div>
+
+      <!-- duplicate edges -->
+      <div class="tag-section">
+        <h3>Duplicate Edges</h3>
+        <div class="tags" id="dupList"></div>
+      </div>
+
+      <!-- raw json -->
+      <div class="raw-toggle">
+        <button class="btn btn-secondary" onclick="toggleRaw()">Toggle Raw JSON</button>
+        <pre class="raw-json" id="rawJson"></pre>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // figure out API base url (same origin in production, localhost in dev)
+    const API_URL = window.location.origin + "/bfhl";
+
+    // load an example so people can quickly test
+    function loadExample() {
+      document.getElementById("dataInput").value =
+        '"A->B", "A->C", "B->D", "C->E", "E->F",\n"X->Y", "Y->Z", "Z->X",\n"P->Q", "Q->R",\n"G->H", "G->H", "G->I",\n"hello", "1->2", "A->"';
+    }
+
+    function handleClear() {
+      document.getElementById("dataInput").value = "";
+      document.getElementById("resultsSection").classList.remove("visible");
+      document.getElementById("errorBox").style.display = "none";
+    }
+
+    async function handleSubmit() {
+      const btn = document.getElementById("submitBtn");
+      const errorBox = document.getElementById("errorBox");
+      const resultsSection = document.getElementById("resultsSection");
+
+      errorBox.style.display = "none";
+      resultsSection.classList.remove("visible");
+
+      // parse the textarea value into an array of strings
+      const rawText = document.getElementById("dataInput").value.trim();
+      if (!rawText) {
+        showError("Please enter some node relationships first.");
+        return;
+      }
+
+      let dataArray;
+      try {
+        // try to parse as a JSON array directly
+        dataArray = JSON.parse("[" + rawText + "]");
+      } catch (e) {
+        // fallback: split by comma and clean up quotes
+        dataArray = rawText.split(",").map(s => s.trim().replace(/^["']|["']$/g, ""));
+      }
+
+      // make sure we got an array of strings
+      dataArray = dataArray.filter(item => item !== "");
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Processing...';
+
+      try {
+        const resp = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: dataArray })
+        });
+
+        if (!resp.ok) {
+          const errData = await resp.json().catch(() => ({}));
+          throw new Error(errData.error || "Server returned " + resp.status);
+        }
+
+        const result = await resp.json();
+        renderResults(result);
+
+      } catch (err) {
+        showError("API call failed: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Analyze";
+      }
+    }
+
+    function showError(msg) {
+      const box = document.getElementById("errorBox");
+      box.textContent = msg;
+      box.style.display = "block";
+    }
+
+    // -------- rendering --------
+
+    function renderResults(data) {
+      // summary cards
+      const summaryRow = document.getElementById("summaryRow");
+      summaryRow.innerHTML = "";
+
+      const stats = [
+        { num: data.summary.total_trees, label: "Trees" },
+        { num: data.summary.total_cycles, label: "Cycles" },
+        { num: data.summary.largest_tree_root || "—", label: "Largest Root" }
+      ];
+      for (const s of stats) {
+        const card = document.createElement("div");
+        card.className = "stat-card";
+        card.innerHTML = `<div class="num">${s.num}</div><div class="label">${s.label}</div>`;
+        summaryRow.appendChild(card);
+      }
+
+      // hierarchy cards
+      const container = document.getElementById("hierarchiesContainer");
+      container.innerHTML = "";
+
+      for (const h of data.hierarchies) {
+        const card = document.createElement("div");
+        card.className = "hierarchy-card";
+
+        const isCycle = h.has_cycle === true;
+        const badgeClass = isCycle ? "badge-cycle" : "badge-tree";
+        const badgeLabel = isCycle ? "Cycle" : "Tree";
+
+        let metaInfo = `Root: <strong>${h.root}</strong>`;
+        if (!isCycle) metaInfo += ` &nbsp;|&nbsp; Depth: <strong>${h.depth}</strong>`;
+
+        let treeVis = "";
+        if (isCycle) {
+          treeVis = "(cyclic — no tree structure)";
+        } else {
+          treeVis = renderTreeText(h.tree, "", true);
+        }
+
+        card.innerHTML = `
+          <div class="card-header">
+            <span class="badge ${badgeClass}">${badgeLabel}</span>
+            <span>${metaInfo}</span>
+          </div>
+          <div class="tree-box">${escapeHtml(treeVis)}</div>
+        `;
+        container.appendChild(card);
+      }
+
+      // invalid entries
+      const invalidList = document.getElementById("invalidList");
+      invalidList.innerHTML = "";
+      if (data.invalid_entries.length === 0) {
+        invalidList.innerHTML = '<span class="empty-msg">None</span>';
+      } else {
+        for (const e of data.invalid_entries) {
+          const tag = document.createElement("span");
+          tag.className = "tag invalid";
+          tag.textContent = JSON.stringify(e);
+          invalidList.appendChild(tag);
+        }
+      }
+
+      // duplicate edges
+      const dupList = document.getElementById("dupList");
+      dupList.innerHTML = "";
+      if (data.duplicate_edges.length === 0) {
+        dupList.innerHTML = '<span class="empty-msg">None</span>';
+      } else {
+        for (const e of data.duplicate_edges) {
+          const tag = document.createElement("span");
+          tag.className = "tag dup";
+          tag.textContent = e;
+          dupList.appendChild(tag);
+        }
+      }
+
+      // raw json
+      document.getElementById("rawJson").textContent = JSON.stringify(data, null, 2);
+
+      document.getElementById("resultsSection").classList.add("visible");
+    }
+
+    /**
+     * recursively draws a text-based tree
+     * the tree object looks like { "A": { "B": {}, "C": { "D": {} } } }
+     */
+    function renderTreeText(obj, prefix, isLast) {
+      const keys = Object.keys(obj);
+      if (keys.length === 0) return "";
+
+      let output = "";
+      // usually there's only one root key at the top level
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        const last = (i === keys.length - 1);
+        const connector = last ? "└── " : "├── ";
+        const newPrefix = prefix + (last ? "    " : "│   ");
+
+        output += prefix + connector + key + "\n";
+
+        const childStr = renderTreeText(obj[key], newPrefix, last);
+        if (childStr) output += childStr;
+      }
+      return output;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function toggleRaw() {
+      document.getElementById("rawJson").classList.toggle("open");
+    }
+  </script>
+
+</body>
+</html>
