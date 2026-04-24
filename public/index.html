@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BFHL - Node Hierarchy Analyzer</title>
   <style>
-    /* -------- reset & base -------- */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -18,7 +17,6 @@
       align-items: center;
     }
 
-    /* -------- header -------- */
     .header {
       width: 100%;
       background: linear-gradient(135deg, #1a1d2e 0%, #252940 100%);
@@ -40,14 +38,14 @@
       margin-top: 6px;
     }
 
-    /* -------- main container -------- */
+   
     .container {
       width: 100%;
       max-width: 900px;
       padding: 32px 20px;
     }
 
-    /* -------- input section -------- */
+    
     .input-card {
       background: #1a1d2e;
       border: 1px solid #2e3348;
@@ -85,7 +83,7 @@
       margin-top: 8px;
     }
 
-    /* -------- buttons -------- */
+   
     .btn-row {
       display: flex;
       gap: 12px;
@@ -117,7 +115,7 @@
     }
     .btn-secondary:hover { background: #2e3348; }
 
-    /* -------- error banner -------- */
+    
     .error-banner {
       background: #2d1518;
       border: 1px solid #5c2328;
@@ -128,7 +126,7 @@
       font-size: 0.88rem;
     }
 
-    /* -------- results section -------- */
+    
     .results { display: none; }
     .results.visible { display: block; }
 
@@ -139,7 +137,6 @@
       color: #c4c7d4;
     }
 
-    /* summary cards row */
     .summary-row {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -168,7 +165,6 @@
       letter-spacing: 0.5px;
     }
 
-    /* hierarchy cards */
     .hierarchy-card {
       background: #1a1d2e;
       border: 1px solid #2e3348;
@@ -205,7 +201,6 @@
       color: #a5a8c0;
     }
 
-    /* tag lists for invalid / duplicate */
     .tag-section {
       background: #1a1d2e;
       border: 1px solid #2e3348;
@@ -287,7 +282,7 @@
 
   <div class="container">
 
-    <!-- input -->
+   
     <div class="input-card">
       <label for="dataInput">Enter node relationships</label>
       <textarea id="dataInput" placeholder='e.g.  "A->B", "A->C", "B->D", "C->E"'></textarea>
@@ -300,33 +295,33 @@
       </div>
     </div>
 
-    <!-- error -->
+    
     <div class="error-banner" id="errorBox" style="display:none;"></div>
 
-    <!-- results -->
+    
     <div class="results" id="resultsSection">
 
-      <!-- summary -->
+     
       <h2 class="section-title">Summary</h2>
       <div class="summary-row" id="summaryRow"></div>
 
-      <!-- hierarchies -->
+      
       <h2 class="section-title">Hierarchies</h2>
       <div id="hierarchiesContainer"></div>
 
-      <!-- invalid entries -->
+    
       <div class="tag-section">
         <h3>Invalid Entries</h3>
         <div class="tags" id="invalidList"></div>
       </div>
 
-      <!-- duplicate edges -->
+      
       <div class="tag-section">
         <h3>Duplicate Edges</h3>
         <div class="tags" id="dupList"></div>
       </div>
 
-      <!-- raw json -->
+      
       <div class="raw-toggle">
         <button class="btn btn-secondary" onclick="toggleRaw()">Toggle Raw JSON</button>
         <pre class="raw-json" id="rawJson"></pre>
@@ -336,10 +331,10 @@
   </div>
 
   <script>
-    // figure out API base url (same origin in production, localhost in dev)
+    
     const API_URL = window.location.origin + "/bfhl";
 
-    // load an example so people can quickly test
+    
     function loadExample() {
       document.getElementById("dataInput").value =
         '"A->B", "A->C", "B->D", "C->E", "E->F",\n"X->Y", "Y->Z", "Z->X",\n"P->Q", "Q->R",\n"G->H", "G->H", "G->I",\n"hello", "1->2", "A->"';
@@ -359,7 +354,7 @@
       errorBox.style.display = "none";
       resultsSection.classList.remove("visible");
 
-      // parse the textarea value into an array of strings
+      
       const rawText = document.getElementById("dataInput").value.trim();
       if (!rawText) {
         showError("Please enter some node relationships first.");
@@ -368,14 +363,14 @@
 
       let dataArray;
       try {
-        // try to parse as a JSON array directly
+        
         dataArray = JSON.parse("[" + rawText + "]");
       } catch (e) {
-        // fallback: split by comma and clean up quotes
+        
         dataArray = rawText.split(",").map(s => s.trim().replace(/^["']|["']$/g, ""));
       }
 
-      // make sure we got an array of strings
+     
       dataArray = dataArray.filter(item => item !== "");
 
       btn.disabled = true;
@@ -410,10 +405,9 @@
       box.style.display = "block";
     }
 
-    // -------- rendering --------
 
     function renderResults(data) {
-      // summary cards
+      
       const summaryRow = document.getElementById("summaryRow");
       summaryRow.innerHTML = "";
 
@@ -429,7 +423,7 @@
         summaryRow.appendChild(card);
       }
 
-      // hierarchy cards
+      
       const container = document.getElementById("hierarchiesContainer");
       container.innerHTML = "";
 
@@ -461,7 +455,7 @@
         container.appendChild(card);
       }
 
-      // invalid entries
+      
       const invalidList = document.getElementById("invalidList");
       invalidList.innerHTML = "";
       if (data.invalid_entries.length === 0) {
@@ -475,7 +469,7 @@
         }
       }
 
-      // duplicate edges
+     
       const dupList = document.getElementById("dupList");
       dupList.innerHTML = "";
       if (data.duplicate_edges.length === 0) {
@@ -489,22 +483,19 @@
         }
       }
 
-      // raw json
+      
       document.getElementById("rawJson").textContent = JSON.stringify(data, null, 2);
 
       document.getElementById("resultsSection").classList.add("visible");
     }
 
-    /**
-     * recursively draws a text-based tree
-     * the tree object looks like { "A": { "B": {}, "C": { "D": {} } } }
-     */
+   
     function renderTreeText(obj, prefix, isLast) {
       const keys = Object.keys(obj);
       if (keys.length === 0) return "";
 
       let output = "";
-      // usually there's only one root key at the top level
+      
       for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
         const last = (i === keys.length - 1);
